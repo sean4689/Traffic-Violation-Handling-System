@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>罰單預覽</title>
+	<style>body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f7fc;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+h2 {
+    font-size: 24px;
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 80%;
+    max-width: 600px;
+    margin-bottom: 30px;
+    background-color: #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+table th, table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 16px;
+}
+
+table th {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: bold;
+}
+
+table td {
+    background-color: #f9f9f9;
+}
+
+object {
+    margin: 20px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin: 10px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+form {
+    margin: 0;
+}
+
+p {
+    font-size: 14px;
+    color: #777;
+    text-align: center;
+}
+</style>
+</head>
+<body style="display: flex; align-items: center; justify-content: center;flex-direction: column;">
+    <h2>罰單預覽</h2>
+    
+    <!-- 顯示事故資料 -->
+    <table border="1">
+        <tr>
+            <th>違規編號</th>
+            <td>{{ accident['accident_id'] }}</td>
+        </tr>
+        <tr>
+            <th>車牌號碼</th>
+            <td>{{ accident['licence_plate'] }}</td>
+        </tr>
+        <tr>
+            <th>車主姓名</th>
+            <td>{{ vehicle_details['owner_name'] }}</td>
+        </tr>
+        <tr>
+            <th>車主身分證號</th>
+            <td>{{ vehicle_details['owner_id'] }}</td>
+        </tr>
+        <tr>
+            <th>違規時間</th>
+            <td>{{ accident['date_time'] }}</td>
+        </tr>
+        <tr>
+            <th>違規地點</th>
+            <td>{{ accident['location'] }}</td>
+        </tr>
+        <tr>
+            <th>車主地址</th>
+            <td>{{ vehicle_details['address'] }}</td>
+        </tr>
+    </table>
+    <object data="{{ url_for('download_ticket', accident_id=accident_id) }}" type="application/pdf" width="500vw" height="600vh">
+        <p>該瀏覽器無法顯示PDF。 
+           <a href="{{ url_for('download_ticket', accident_id=accident_id) }}">下載PDF</a>.</p>
+    </object>
+    <form action="{{ url_for('print_ticket', accident_id=accident_id) }}" method="POST">
+        <button type="submit">確認並列印</button>
+    </form>
+    <form action="{{ url_for('ticket_wrong', accident_id=accident_id) }}" method="POST">
+        <button type="submit">錯誤送回</button>
+    </form>
+</body>
+</html>

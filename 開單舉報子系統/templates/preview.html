@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>罰單預覽目錄</title>
+    <style>
+        body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f7fc;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+h2 {
+    text-align: center;
+    font-size: 24px;
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+    background-color: #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+thead {
+    background-color: #007bff;
+    color: #fff;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #ddd;
+    font-size: 16px;
+}
+
+th {
+    font-weight: bold;
+}
+
+td {
+    background-color: #f9f9f9;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #0056b3;
+}
+
+p {
+    text-align: center;
+    font-size: 16px;
+    color: #777;
+    margin-top: 20px;
+}
+
+    </style>
+</head>
+<body>
+    <h2>罰單預覽目錄</h2>
+    
+    {% if results %}
+        <table>
+            <thead>
+                <tr>
+                    <th>違規編號</th>
+                    <th>車牌號碼</th>
+                    <th>車主身分證號</th>
+					<th>車主姓名</th>
+					<th>車主地址</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in results %}
+                <tr>
+                    <td>{{ item.accident_id }}</td>
+                    <td>{{ item.licence_plate }}</td>
+					{% for detail in item.details %}
+						<td>{{ detail.owner_id }}</td>
+						<td>{{ detail.owner_name }}</td>
+						<td>{{ detail.address }}</td>
+					{% endfor %}
+                    <td>
+                        <a href="{{ url_for('ticket_preview', accident_id=item.accident_id) }}">預覽該罰單</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>目前沒有可預覽資料。</p>
+    {% endif %}
+</body>
+</html>

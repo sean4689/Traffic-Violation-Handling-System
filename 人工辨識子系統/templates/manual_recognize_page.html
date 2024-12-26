@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>車牌辨識系統</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            max-width: 1000px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            text-align: right;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .tab-buttons button {
+            padding: 12px 25px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 0 10px;
+        }
+        .tab-buttons button:hover {
+            background-color: #0056b3;
+        }
+        #accidents-container {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .accident-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            border: 1px solid #ddd;
+        }
+        .accident-item:hover {
+            transform: translateY(-5px);
+            background-color: #e9e9e9;
+        }
+        .accident-item strong {
+            color: #007bff;
+        }
+        .accident-item p {
+            margin: 5px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 14px;
+            color: #777;
+        }
+        .footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>車牌辨識系統</h1>
+
+    {% if username %}
+        <div class="user-info">
+            <p>歡迎，{{ username }}! <a href="/logout" method="POST">登出</a></p>
+        </div>
+    {% endif %}
+
+    <!-- 這裡新增的連結 -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <a href="/logs" class="btn" style="padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px;">查看操作日志</a>
+    </div>
+
+    <div class="tab-buttons">
+        <button onclick="showAccidents('1')">未辨識</button>
+        <button onclick="showAccidents('3')">已辨識</button>
+    </div>
+
+    <div id="accidents-container">
+        <!-- 事故資料將動態加載 -->
+    </div>
+</div>
+
+<div class="footer">
+    <p>&copy; 2024 車牌辨識系統. All rights reserved.</p>
+</div>
+
+<script>
+    function showAccidents(status) {
+        fetch(`/accidents/${status}`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('accidents-container');
+                let accidentsHtml = '';
+                
+                if (data.accidents.length > 0) {
+                    accidentsHtml = '<div id="accidents-list">';
+                    data.accidents.forEach(accident => {
+                        accidentsHtml += `
+
+                            <div class="accident-item" onclick="window.location.href='/recognize/${accident.accident_id}'">
+                                <strong>事故 ID:</strong> ${accident.accident_id}<br>
+                                <strong>地點:</strong> ${accident.location}<br>
+                                <strong>時間:</strong> ${accident.date_time}<br>
+                            </div>
+                        `;
+                    });
+                    accidentsHtml += '</div>';
+                } else {
+                    accidentsHtml = '<p>目前沒有待辨識的車牌。</p>';
+                }
+
+                container.innerHTML = accidentsHtml;
+            })
+            .catch(error => console.error('Error fetching accidents:', error));
+    }
+</script>
+
+</body>
+</html>
