@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session, flash, jso
 import mysql.connector
 import bcrypt
 from datetime import datetime
+import requests
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # 用於 session 或 flash 消息
@@ -123,44 +124,65 @@ def recognize(accident_id):
     if 'username' not in session:
         return redirect('/login')
 
-    conn = mysql.connector.connect(**db_config)
-    cursor = conn.cursor(dictionary=True)
+    try:
+        with mysql.connector.connect(**db_config) as conn:
+            with conn.cursor(dictionary=True) as cursor:
+                # 查詢事故資料
+                query = "SELECT * FROM Accidents WHERE accident_id = %s"
+                cursor.execute(query, (accident_id,))
+                accident = cursor.fetchone()
 
-    # 查詢事故資料
-    query = "SELECT * FROM Accidents WHERE accident_id = %s"
-    cursor.execute(query, (accident_id,))
-    accident = cursor.fetchone()
+                if not accident:
+                    flash("找不到事故資料！", "danger")
+                    return redirect('/')
 
-    if request.method == 'POST':
-        new_licence_plate = request.form.get('licence_plate')
-        
-        # 更新車牌資料
-        update_query = """
-            UPDATE Accidents
-            SET licence_plate = %s, recognized = '3'
-            WHERE accident_id = %s
-        """
-        cursor.execute(update_query, (new_licence_plate, accident_id))
-        conn.commit()
+                if request.method == 'POST':
+                    new_licence_plate = request.form.get('licence_plate')
 
-        # 取得用戶 ID
-        username = session['username']
-        cursor.execute("SELECT user_id FROM Users WHERE username = %s", (username,))
-        user = cursor.fetchone()
-        user_id = user['user_id'] if user else None
+                    if not new_licence_plate:
+                        flash("請提供車牌號碼！", "danger")
+                        return redirect(f'/recognize/{accident_id}')
 
-        if user_id:
-            # 記錄操作日志
-            log_action(user_id, "辨識車牌", accident_id)
+                    # 調用車牌查詢 API
+                    api_url = 'http://localhost:5555/get_vehicle_info'
+                    response = requests.post(api_url, json={"licence_plate": new_licence_plate})
 
-        # 顯示成功訊息
-        flash("車牌已更新！", "success")
+                    if response.status_code == 404:
+                        flash("未記錄的車牌！", "danger")
+                        return redirect(f'/recognize/{accident_id}')
+
+                    if response.status_code != 200:
+                        flash(f"車牌查詢失敗：{response.json().get('error', '未知錯誤')}", "danger")
+                        return redirect(f'/recognize/{accident_id}')
+
+                    # 更新車牌資料
+                    update_query = """
+                        UPDATE Accidents
+                        SET licence_plate = %s, recognized = '3'
+                        WHERE accident_id = %s
+                    """
+                    cursor.execute(update_query, (new_licence_plate, accident_id))
+                    conn.commit()
+
+                    # 取得用戶 ID
+                    username = session['username']
+                    cursor.execute("SELECT user_id FROM Users WHERE username = %s", (username,))
+                    user = cursor.fetchone()
+                    user_id = user['user_id'] if user else None
+
+                    if user_id:
+                        # 記錄操作日志
+                        log_action(user_id, "辨識車牌", accident_id)
+                    return redirect('/')
+
+        return render_template('recognize_page.html', accident=accident)
+
+    except mysql.connector.Error as e:
+        flash(f"資料庫錯誤：{e}", "danger")
         return redirect('/')
-
-    cursor.close()
-    conn.close()
-
-    return render_template('recognize_page.html', accident=accident)
+    except Exception as e:
+        flash(f"發生錯誤：{e}", "danger")
+        return redirect('/')
 
 
 @app.route('/logs')
@@ -184,4 +206,4 @@ def logs():
 
 
 if __name__ == '__main__':
-    app.run(debug=True,port=5000)
+    app.run(debug=True)

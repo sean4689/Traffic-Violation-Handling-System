@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS VehicleOwners (
 );
 
 INSERT INTO VehicleOwners (licence_plate, owner_id, owner_name, address) VALUES
-('ABC-1234','T478591587', 'John Doe', '123 Elm St, New York, NY'),
-('DEF-5678','D478591587', 'Jane Smith', '456 accidentsOak St, Los Angeles, CA'),
-('GHI-9012','F478591587', 'Alice Johnson', '789 Pine St, Chicago, IL'),
-('BJK-3398','S478591587', 'Bob Brown', '101 Maple St, Chongli, CN');
+('ABC-1234','T478591587', '王小明', '台北市中正區忠孝東路一段100號'),
+('DEF-5678','D478591587', '林美惠', '高雄市苓雅區三多一路200巷5號'),
+('GHI-9012','F478591587', '張志豪', '新竹市東區光復路二段88號'),
+('BJK-3398','S478591587', '陳怡君', '台中市西屯區台灣大道三段25號');
