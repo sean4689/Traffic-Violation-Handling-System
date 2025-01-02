@@ -50,6 +50,7 @@ CREATE TABLE logs (
     action VARCHAR(255),             -- 例如 "辨識車牌" 或 "修改車牌"
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 操作時間
     accident_id INT,                -- 關聯的事故
+    licence_plate VARCHAR(15),
     FOREIGN KEY (user_id) REFERENCES users(user_id),  -- 關聯使用者資料表
     FOREIGN KEY (accident_id) REFERENCES accidents(accident_id) -- 關聯事故資料表
 );

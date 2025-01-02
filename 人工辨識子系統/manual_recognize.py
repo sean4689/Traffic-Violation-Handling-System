@@ -15,6 +15,8 @@ db_config = {
     'database': 'accidents'
 }
 
+
+
 def log_action(user_id, action, accident_id):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
