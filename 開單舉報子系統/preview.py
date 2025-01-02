@@ -6,6 +6,7 @@ import time
 import threading
 import shutil
 from PIL import Image
+import requests
 
 app = Flask(__name__)
 
@@ -269,16 +270,7 @@ def download_ticket(accident_id):
     ticket_path = os.path.join(folder_path, f"{accident_id}.pdf")
     return send_from_directory(folder_path, f"{accident_id}.pdf")
 
-# 刪除事故資料
-def delete_accident_data(accident_id):
-    conn = get_db_connection(db_config_accidents)
-    cursor = conn.cursor()
-    
-    cursor.execute("DELETE FROM Accidents WHERE accident_id = %s", (accident_id,))
-    conn.commit()
-    
-    cursor.close()
-    conn.close()
+
 
 # 罰單預覽頁面
 @app.route('/ticket_preview/<accident_id>')
@@ -306,7 +298,7 @@ def ticket_preview(accident_id):
 
 
 
-def copy_pdf_file(accident_id):
+def send_ticket(accident_id):
     # 檔案來源資料夾
     source_folder = 'preview'
     
@@ -331,6 +323,23 @@ def copy_pdf_file(accident_id):
             print(f"複製檔案時發生錯誤: {e}")
     else:
         print(f"檔案 {accident_id}.pdf 不存在於 {source_folder}.")
+        
+
+    conn = get_db_connection(db_config_accidents)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT location FROM Accidents WHERE accident_id = %s;", (accident_id,))
+    location = cursor.fetchone()
+    coordinates=get_coordinates(location, access_token)
+    longitude = coordinates[0]
+    latitude = coordinates[1]
+    cursor.execute("UPDATE Accidents SET longitude = %s WHERE accident_id = %s", (longitude, accident_id))
+    cursor.execute("UPDATE Accidents SET latitude = %s WHERE accident_id = %s", (latitude, accident_id))
+    cursor.execute("UPDATE Accidents SET recognized=4 WHERE accident_id = %s", (accident_id,))
+    conn.commit()
+    
+    cursor.close()
+    conn.close()
 
 
 # 列印並刪除事故資料
@@ -338,10 +347,7 @@ def copy_pdf_file(accident_id):
 def print_ticket(accident_id):
 
     #複製預覽PDF
-    copy_pdf_file(accident_id)
-    
-    # 刪除事故資料
-    delete_accident_data(accident_id)
+    send_ticket(accident_id)
     
     # 返回首頁
     return redirect(url_for('preview_data'))
@@ -428,5 +434,21 @@ def run_delete_preview():
 preview_delete_thread = threading.Thread(target=run_delete_preview, daemon=True)
 preview_delete_thread.start()
 
+access_token="pk.eyJ1Ijoic2VhbjEwMTEiLCJhIjoiY200bGVlNGNxMDB1ZjJqcThxZ3FpZW96aiJ9.AYZsVeMfUy0hFDw1yHhKYA"
+def get_coordinates(address, access_token):
+    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address}.json"
+    params = {
+        'access_token': access_token,
+        'limit': 1
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if 'features' in data and len(data['features']) > 0:
+        coordinates = data['features'][0]['geometry']['coordinates']
+        return coordinates
+    else:
+        return None
+        
 if __name__ == '__main__':
     app.run(debug=True,port=5001)

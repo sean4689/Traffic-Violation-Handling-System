@@ -10,12 +10,22 @@ CREATE TABLE IF NOT EXISTS Accidents (
     cam_id VARCHAR(15) NOT NULL,
     speed_limit INT,
     current_speed INT,
-    licence_plate VARCHAR(15) ,
+    licence_plate VARCHAR(15),
     location VARCHAR(100),
     date_time DATETIME,
     image VARCHAR(200),
-    recognized VARCHAR(3)
+    latitude FLOAT,
+    longitude FLOAT,
+    recognized VARCHAR(3)             -- 1(ai no), 2(ai yes), 3(human yes), 4(done), 5(unrecognizable)
 ) AUTO_INCREMENT=10000001;
+
+DROP TABLE IF EXISTS Recognize;
+CREATE TABLE IF NOT EXISTS Recognize (
+    accident_id INT PRIMARY KEY,
+    confidence FLOAT,
+    result VARCHAR(7),
+    error_code VARCHAR(20)
+);
 
 CREATE TABLE preview_lifetime (
     accident_id INT PRIMARY KEY,
@@ -27,23 +37,6 @@ DO
   DELETE FROM preview_lifetime
   WHERE created_at < NOW() - INTERVAL 3 minute;
 SET GLOBAL event_scheduler = ON;
-
-DROP TABLE IF EXISTS traffic_ticket;
-CREATE TABLE IF NOT EXISTS traffic_ticket (
-    traffic_ticket_id INT AUTO_INCREMENT PRIMARY KEY,
-    accident_id INT,
-    cam_id VARCHAR(15) NOT NULL,
-    speed_limit INT,
-    current_speed INT,
-    licence_plate VARCHAR(15) NOT NULL,
-    confidence FLOAT NOT NULL,
-    location VARCHAR(100),
-    date_time DATETIME,
-    image VARCHAR(200),
-    owner_id VARCHAR(10),
-    owner_name VARCHAR(100),
-    address VARCHAR(255)
-)AUTO_INCREMENT=10000001;
 
 CREATE TABLE IF NOT EXISTS Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
