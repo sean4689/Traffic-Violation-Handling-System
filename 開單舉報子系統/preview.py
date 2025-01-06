@@ -7,6 +7,7 @@ import threading
 import shutil
 from PIL import Image
 import requests
+from datetime import timedelta
 
 app = Flask(__name__)
 
@@ -69,7 +70,6 @@ def get_vehicle_details(licence_plate):
 
 from fpdf import FPDF
 
-#產生PDF
 @app.route('/generate_ticket_pdf/<accident_id>')
 def generate_ticket_pdf(accident_id):
     # 連接事故資料庫
@@ -105,57 +105,51 @@ def generate_ticket_pdf(accident_id):
     conn_vehicle.close()
 
     # 開始生成 PDF
-    pdf = FPDF(orientation='P', unit='mm', format=(210, 220))
+    pdf = FPDF(orientation='P', unit='mm', format=(210, 250))
     pdf.add_page()
+
+    # 插入背景圖片 (指定大小)
+    background_image_path = 'static/traffic_ticket.jpg'
+    if os.path.exists(background_image_path):
+        pdf.image(background_image_path, x=0, y=0, w=210)  # 圖片的起始座標和寬度可調整
 
     # 設定中文字型
     pdf.add_font('TC', '', "text.ttf", uni=True)
     pdf.set_font('TC', '', 12)
-
-    # 設定背景顏色
-    pdf.set_fill_color(255, 182, 193)  # 粉紅色
-    pdf.rect(0, 0, 210, 220, 'F')  # 填充背景
-
-    # 罰單標題
-    pdf.cell(200, 10, txt="交通罰單", ln=True, align='C')
-    pdf.ln(10)
     
-    # 內容區塊
-    pdf.set_text_color(0, 0, 0)
-    pdf.cell(60, 10, '違規編號', border=1, align='C', fill=False)
-    pdf.cell(130, 10, str(accident_id), border=1, align='C', fill=False)
-    pdf.ln()
-    pdf.cell(60, 10, '車牌號碼', border=1, align='C', fill=False)
-    pdf.cell(130, 10, licence_plate, border=1, align='C', fill=False)
-    pdf.ln()
-    pdf.cell(60, 10, '車主姓名', border=1, align='C', fill=False)
-    pdf.cell(130, 10, vehicle_details['owner_name'], border=1, align='C', fill=False)
-    pdf.ln()
-    pdf.cell(60, 10, '車主身分證號', border=1, align='C', fill=False)
-    pdf.cell(130, 10, vehicle_details['owner_id'], border=1, align='C', fill=False)
-    pdf.ln()
-    pdf.cell(60, 10, '車主地址', border=1, align='C', fill=False)
-    pdf.cell(130, 10, vehicle_details['address'], border=1, align='C', fill=False)
-    pdf.ln()
-    pdf.cell(60, 10, '違規地點', border=1, align='C', fill=False)
-    pdf.cell(130, 10, accident['location'], border=1, align='C', fill=False)
-    pdf.ln()
-    pdf.cell(60, 10, '違規日期', border=1, align='C', fill=False)
-    pdf.cell(130, 10, accident['date_time'].strftime('%Y-%m-%d'), border=1, align='C', fill=False)
-    pdf.ln()
-    pdf.cell(60, 10, '違規時間', border=1, align='C', fill=False)
-    pdf.cell(130, 10, accident['date_time'].strftime('%H:%M:%S'), border=1, align='C', fill=False)
-    pdf.ln()
+    pay_deadline = accident['date_time'] + timedelta(days=45)
+
+    # 定義文字座標
+    text_data = [
+        {"value": vehicle_details['owner_id'], "x": 125, "y": 48},
+        {"value": vehicle_details['owner_name'], "x": 170, "y": 48},
+        {"value": licence_plate, "x": 25, "y": 55},
+        {"value": vehicle_details['address'], "x": 50, "y": 63},
+        {"value": accident['location'], "x": 25, "y": 76},
+        {"value": accident['date_time'].strftime('%Y'), "x": 25, "y": 70},
+        {"value": accident['date_time'].strftime('%m'), "x": 45, "y": 70},
+        {"value": accident['date_time'].strftime('%d'), "x": 58, "y": 70},
+        {"value": accident['date_time'].strftime('%H'), "x": 73, "y": 70},
+        {"value": accident['date_time'].strftime('%M'), "x": 87, "y": 70},
+        {"value": pay_deadline.strftime('%Y'), "x": 37, "y": 82},
+        {"value": pay_deadline.strftime('%m'), "x": 58, "y": 82},
+        {"value": pay_deadline.strftime('%d'), "x": 80, "y": 82}
+    ]
+
+    # 插入文字到 PDF
+    for data in text_data:
+        pdf.set_xy(data["x"], data["y"])
+        pdf.cell(0, 10, f"{data['value']}", ln=False)  # 僅顯示數值
+
 
     # 如果有現場圖片，則顯示
     if accident['image']:
         image_path = os.path.join("./static/License_plate", accident['image'])
         if os.path.exists(image_path):
-            pdf.cell(60, 10, '現場照片', border=1, align='C', fill=False)
-            pdf.image(image_path, x=80, y=pdf.get_y(), w=50)  # 放置圖片，大小可根據需求調整
+            pdf.image(image_path, x=0, y=145, w=200)  # 現場照片座標和大小
         else:
-            pdf.cell(60, 10, '現場照片', border=1, align='C', fill=False)
-            pdf.cell(130, 10, '圖片不存在', border=1, align='C', fill=False)
+            pdf.set_xy(0, 145)
+            pdf.cell(0, 10, "現場照片: 圖片不存在", ln=False)
     
     # 建立 lifetime 資料
     add_recognized_accidents_to_table(accident_id)
