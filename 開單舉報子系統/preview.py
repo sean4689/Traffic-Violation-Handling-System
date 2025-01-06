@@ -154,7 +154,8 @@ def generate_ticket_pdf(accident_id):
             pdf.cell(60, 10, '現場照片', border=1, align='C', fill=False)
             pdf.image(image_path, x=80, y=pdf.get_y(), w=50)  # 放置圖片，大小可根據需求調整
         else:
-            pdf.cell(60, 10, '圖片不存在', border=1, align='C', fill=False)
+            pdf.cell(60, 10, '現場照片', border=1, align='C', fill=False)
+            pdf.cell(130, 10, '圖片不存在', border=1, align='C', fill=False)
     
     # 建立 lifetime 資料
     add_recognized_accidents_to_table(accident_id)

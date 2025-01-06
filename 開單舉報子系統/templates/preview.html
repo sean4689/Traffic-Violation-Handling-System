@@ -205,7 +205,7 @@
         const listView = document.getElementById('listView');
         const cardView = document.getElementById('cardView');
         const pagination = document.getElementById('pagination');
-        const cardsPerPage = 30;
+        const cardsPerPage = 12;
 
         let currentPage = 1;
 
@@ -231,10 +231,7 @@
 
                 card.innerHTML = `
                     <h3>違規編號: ${item.accident_id}</h3>
-					<object data="{{ url_for('download_ticket', accident_id='') }}${item.accident_id}" type="application/pdf" width="350vw" height="280vh">
-
-						<p>該瀏覽器無法顯示PDF。 
-					</object>
+					<embed src="{{ url_for('download_ticket', accident_id='') }}${item.accident_id}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="350vw" height="280vh">
                     <p>車牌號碼: ${item.licence_plate}</p>
                     ${item.details.map(detail => `
                         <p>身分證號: ${detail.owner_id}</p>
