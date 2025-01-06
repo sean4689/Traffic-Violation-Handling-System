@@ -6,104 +6,317 @@
     <title>罰單預覽目錄</title>
     <style>
         body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f4f7fc;
-    margin: 0;
-    padding: 20px;
-    color: #333;
-}
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
 
-h2 {
-    text-align: center;
-    font-size: 24px;
-    color: #007bff;
-    margin-bottom: 20px;
-}
+        h2 {
+            text-align: center;
+            font-size: 24px;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 30px;
-    background-color: #fff;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    overflow: hidden;
-}
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
 
-thead {
-    background-color: #007bff;
-    color: #fff;
-}
+        .view-toggle button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
 
-th, td {
-    padding: 12px 15px;
-    text-align: left;
-    border: 1px solid #ddd;
-    font-size: 16px;
-}
+        .view-toggle button:hover {
+            background-color: #0056b3;
+        }
 
-th {
-    font-weight: bold;
-}
+        /* Table Style */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
 
-td {
-    background-color: #f9f9f9;
-}
+        thead {
+            background-color: #007bff;
+            color: #fff;
+        }
 
-a {
-    color: #007bff;
-    text-decoration: none;
-    font-weight: bold;
-    transition: color 0.3s ease;
-}
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
 
-a:hover {
-    color: #0056b3;
-}
+        td {
+            background-color: #f9f9f9;
+        }
 
-p {
-    text-align: center;
-    font-size: 16px;
-    color: #777;
-    margin-top: 20px;
-}
+        a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
 
+        a:hover {
+            color: #0056b3;
+        }
+
+        /* Card Style */
+        .card-container {
+            display: none;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .card {
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            width: calc(33% - 20px);
+            box-sizing: border-box;
+        }
+
+        .card h3 {
+            font-size: 18px;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .card a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .card a:hover {
+            background-color: #0056b3;
+        }
+
+        /* Pagination Style */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            margin: 0 5px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .pagination button:hover {
+            background-color: #0056b3;
+        }
+
+        .pagination button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
     <h2>罰單預覽目錄</h2>
-    
-    {% if results %}
-        <table>
-            <thead>
-                <tr>
-                    <th>違規編號</th>
-                    <th>車牌號碼</th>
-                    <th>車主身分證號</th>
-					<th>車主姓名</th>
-					<th>車主地址</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in results %}
-                <tr>
-                    <td>{{ item.accident_id }}</td>
-                    <td>{{ item.licence_plate }}</td>
-					{% for detail in item.details %}
-						<td>{{ detail.owner_id }}</td>
-						<td>{{ detail.owner_name }}</td>
-						<td>{{ detail.address }}</td>
-					{% endfor %}
-                    <td>
-                        <a href="{{ url_for('ticket_preview', accident_id=item.accident_id) }}">預覽該罰單</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>目前沒有可預覽資料。</p>
-    {% endif %}
+
+    <!-- 切換按鈕 -->
+    <div class="view-toggle">
+        <button id="toggleView">切換為卡片展示</button>
+    </div>
+
+    <!-- 列表模式 -->
+    <div id="listView">
+        {% if results %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>違規編號</th>
+                        <th>車牌號碼</th>
+                        <th>車主身分證號</th>
+                        <th>車主姓名</th>
+                        <th>車主地址</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in results %}
+                    <tr>
+                        <td>{{ item.accident_id }}</td>
+                        <td>{{ item.licence_plate }}</td>
+                        {% for detail in item.details %}
+                            <td>{{ detail.owner_id }}</td>
+                            <td>{{ detail.owner_name }}</td>
+                            <td>{{ detail.address }}</td>
+                        {% endfor %}
+                        <td>
+                            <a href="{{ url_for('ticket_preview', accident_id=item.accident_id) }}">預覽該罰單</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>目前沒有可預覽資料。</p>
+        {% endif %}
+    </div>
+
+    <!-- 卡片模式 -->
+    <div id="cardView" class="card-container"></div>
+    <div class="pagination" id="pagination"></div>
+
+    <script>
+        const toggleButton = document.getElementById('toggleView');
+        const listView = document.getElementById('listView');
+        const cardView = document.getElementById('cardView');
+        const pagination = document.getElementById('pagination');
+        const cardsPerPage = 30;
+
+        let currentPage = 1;
+
+        const data = {{ results|tojson }}; // 從伺服器獲取資料
+
+        // Render Card View
+        function renderCards() {
+            cardView.innerHTML = '';
+            const startIndex = (currentPage - 1) * cardsPerPage;
+            const endIndex = Math.min(startIndex + cardsPerPage, data.length);
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const item = data[i];
+                const card = document.createElement('div');
+                card.className = 'card';
+				fetch(`/generate_ticket_pdf/${item.accident_id}`)
+					.then(response => response.text())  // 取得回應的文字內容
+					.then(result => {
+						if (result === "0") {  // 如果回傳值是 "0"（檔案不存在）
+							location.reload();   // 重新載入頁面
+						}
+					})
+
+                card.innerHTML = `
+                    <h3>違規編號: ${item.accident_id}</h3>
+					<object data="{{ url_for('download_ticket', accident_id='') }}${item.accident_id}" type="application/pdf" width="350vw" height="280vh">
+
+						<p>該瀏覽器無法顯示PDF。 
+					</object>
+                    <p>車牌號碼: ${item.licence_plate}</p>
+                    ${item.details.map(detail => `
+                        <p>身分證號: ${detail.owner_id}</p>
+                        <p>車主姓名: ${detail.owner_name}</p>
+                        <p>車主地址: ${detail.address}</p>
+                    `).join('')}
+                    <a href="/ticket_preview/${item.accident_id}">預覽該罰單</a>
+                `;
+                cardView.appendChild(card);
+            }
+        }
+
+        // Render Pagination 
+		function renderPagination() {
+			pagination.innerHTML = '';
+			const totalPages = Math.ceil(data.length / cardsPerPage);
+
+			// 從localStorage獲取當前頁面
+			const savedPage = localStorage.getItem('currentPage');
+			const pageToShow = savedPage ? parseInt(savedPage) : 1;
+
+			for (let i = 1; i <= totalPages; i++) {
+				const button = document.createElement('button');
+				button.textContent = i;
+				button.disabled = i === pageToShow;
+				button.addEventListener('click', () => {
+					currentPage = i;
+					localStorage.setItem('currentPage', i); // 保存當前頁面到localStorage
+					renderCards();
+					renderPagination();
+				});
+				pagination.appendChild(button);
+			}
+		}
+
+		// Toggle View
+		toggleButton.addEventListener('click', () => {
+			if (listView.style.display === 'none') {
+				listView.style.display = 'block';
+				cardView.style.display = 'none';
+				pagination.style.display = 'none';
+				toggleButton.textContent = '切換為卡片展示';
+				
+				// 保存當前狀態到localStorage
+				localStorage.setItem('viewState', 'list');
+			} else {
+				listView.style.display = 'none';
+				cardView.style.display = 'flex';
+				pagination.style.display = 'flex';
+				toggleButton.textContent = '切換為列表展示';
+				renderCards();
+				renderPagination();
+				
+				// 保存當前狀態到localStorage
+				localStorage.setItem('viewState', 'card');
+			}
+		});
+		
+		window.addEventListener('load', () => {
+			// 讀取視圖狀態 (列表或卡片展示)
+			const savedState = localStorage.getItem('viewState');
+			if (savedState === 'list') {
+				listView.style.display = 'block';
+				cardView.style.display = 'none';
+				pagination.style.display = 'none';
+				toggleButton.textContent = '切換為卡片展示';
+			} else if (savedState === 'card') {
+				listView.style.display = 'none';
+				cardView.style.display = 'flex';
+				pagination.style.display = 'flex';
+				toggleButton.textContent = '切換為列表展示';
+				renderCards();
+				renderPagination();
+			}
+
+			// 讀取當前頁面
+			const savedPage = localStorage.getItem('currentPage');
+			currentPage = savedPage ? parseInt(savedPage) : 1;
+			renderCards();
+			renderPagination();
+		});
+
+    </script>
 </body>
 </html>
