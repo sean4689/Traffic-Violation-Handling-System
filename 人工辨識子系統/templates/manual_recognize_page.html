@@ -3,59 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>車牌辨識系統</title>
+    <title>事故車牌辨識</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #f4f7fc;
             margin: 0;
-            padding: 0;
-            color: #333;
+            padding: 20px;
         }
         .container {
-            width: 80%;
-            max-width: 1000px;
-            margin: 50px auto;
-            background-color: #fff;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 30px;
         }
         h1 {
             text-align: center;
-            font-size: 28px;
-            color: #007bff;
+            color: #333;
             margin-bottom: 20px;
         }
-        .user-info {
-            text-align: right;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .tab-buttons {
+        .tabs {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             margin-bottom: 30px;
         }
-        .tab-buttons button {
-            padding: 12px 25px;
-            font-size: 16px;
-            color: white;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin: 0 10px;
-        }
-        .tab-buttons button:hover {
-            background-color: #0056b3;
-        }
-        #accidents-container {
-            padding: 20px;
+        .tab-section {
+            width: 32%;
             background-color: #f9f9f9;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
         .accident-item {
             padding: 15px;
@@ -73,67 +58,76 @@
         .accident-item strong {
             color: #007bff;
         }
-        .accident-item p {
-            margin: 5px 0;
-        }
-        .footer {
+        .back-link {
             text-align: center;
-            margin-top: 50px;
-            font-size: 14px;
-            color: #777;
+            margin-top: 20px;
         }
-        .footer a {
+        .back-link a, .log-link a {
             color: #007bff;
             text-decoration: none;
+            font-size: 16px;
         }
-        .footer a:hover {
-            text-decoration: underline;
+        .log-link {
+            text-align: center;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h1>車牌辨識系統</h1>
-
-    {% if username %}
+    <div class="container">
         <div class="user-info">
-            <p>歡迎，{{ username }}! <a href="/logout" method="POST">登出</a></p>
+            {% if username %}
+                <span>歡迎，{{ username }}！</span>
+                <a href="/logout" method="POST">登出</a>
+            {% else %}
+                <a href="/login">登入</a>
+            {% endif %}
         </div>
-    {% endif %}
-
-    <!-- 這裡新增的連結 -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <a href="/logs" class="btn" style="padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px;">查看操作日志</a>
+        <h1>事故車牌辨識</h1>
+        <div class="tabs">
+            <div class="tab-section" id="unrecognized">
+                <h2>未辨識</h2>
+                <div id="unrecognized-list"></div>
+            </div>
+            <div class="tab-section" id="recognized">
+                <h2>已辨識</h2>
+                <div id="recognized-list"></div>
+            </div>
+            <div class="tab-section" id="unidentifiable">
+                <h2>無法辨識</h2>
+                <div id="unidentifiable-list"></div>
+            </div>
+        </div>
+        
+        <div class="back-link">
+            <a href="/">返回首頁</a>
+        </div>
+        <div class="log-link">
+            <a href="/logs">查看操作日誌</a>
+        </div>
     </div>
-
-    <div class="tab-buttons">
-        <button onclick="showAccidents('1')">未辨識</button>
-        <button onclick="showAccidents('3')">已辨識</button>
-    </div>
-
-    <div id="accidents-container">
-        <!-- 事故資料將動態加載 -->
-    </div>
-</div>
-
-<div class="footer">
-    <p>&copy; 2024 車牌辨識系統. All rights reserved.</p>
-</div>
 
 <script>
-    function showAccidents(status) {
+    document.addEventListener("DOMContentLoaded", function () {
+        loadAccidents('1', 'unrecognized-list');
+        loadAccidents('3', 'recognized-list');
+        loadAccidents('5', 'unidentifiable-list');
+    });
+
+    function loadAccidents(status, containerId) {
         fetch(`/accidents/${status}`)
-            .then(response => response.json())
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+                return response.json();
+            })
             .then(data => {
-                const container = document.getElementById('accidents-container');
+                const container = document.getElementById(containerId);
                 let accidentsHtml = '';
-                
                 if (data.accidents.length > 0) {
-                    accidentsHtml = '<div id="accidents-list">';
                     data.accidents.forEach(accident => {
                         accidentsHtml += `
-
                             <div class="accident-item" onclick="window.location.href='/recognize/${accident.accident_id}'">
                                 <strong>事故 ID:</strong> ${accident.accident_id}<br>
                                 <strong>地點:</strong> ${accident.location}<br>
@@ -141,11 +135,9 @@
                             </div>
                         `;
                     });
-                    accidentsHtml += '</div>';
                 } else {
-                    accidentsHtml = '<p>目前沒有待辨識的車牌。</p>';
+                    accidentsHtml = '<p>目前沒有相關事故。</p>';
                 }
-
                 container.innerHTML = accidentsHtml;
             })
             .catch(error => console.error('Error fetching accidents:', error));

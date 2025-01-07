@@ -1,15 +1,18 @@
-from flask import Flask, render_template, send_from_directory, request, redirect, url_for
+from flask import Flask, render_template, send_from_directory, request, redirect, url_for, session, flash
 import mysql.connector
 from fpdf import FPDF
 import os
+import bcrypt
 import time
 import threading
 import shutil
 from PIL import Image
 import requests
 from datetime import timedelta
+from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = '1234'
 
 # 設定 PDF 存儲資料夾
 folder_path = 'preview'
@@ -40,6 +43,92 @@ def get_db_connection(db_config):
         database=db_config['database']
     )
     return connection
+
+def log_action(user_id, action, accident_id):
+    conn = get_db_connection(db_config_accidents)
+    cursor = conn.cursor()
+    query = """
+    INSERT INTO ticket_issue_logs (user_id, action, timestamp, accident_id)
+    VALUES (%s, %s, %s, %s)
+    """
+    cursor.execute(query, (user_id, action, datetime.now(), accident_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+# 註冊功能
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        
+        conn = get_db_connection(db_config_accidents)
+        cursor = conn.cursor()
+        
+        # 檢查帳號是否已經存在
+        cursor.execute("SELECT * FROM ticket_issuer WHERE username = %s", (username,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            flash("帳號已存在，請選擇其他帳號", 'error')
+        else:
+            # 插入新用戶
+            cursor.execute("INSERT INTO ticket_issuer (username, password) VALUES (%s, %s)", (username, hashed_password))
+            conn.commit()
+            flash("註冊成功，請登入", 'success')
+            return redirect('/login')
+        
+        cursor.close()
+        conn.close()
+    
+    return render_template('register.html')
+
+# 用戶登入功能
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        conn = get_db_connection(db_config_accidents)
+        cursor = conn.cursor(dictionary=True)
+        
+        # 查詢用戶是否存在
+        cursor.execute("SELECT * FROM ticket_issuer WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+            session['user_id'] = user['user_id']  # 設置 session
+            session['username'] = user['username']  # 設置 session
+            return redirect('/preview_data')
+        else:
+            flash("帳號或密碼錯誤", 'error')
+    return render_template('login.html')
+
+# 登出功能
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('您已成功登出！', 'info')
+    return redirect(url_for('login'))
+
+# 記錄用戶操作的函數
+def log_user_action(user_id, action, accident_id=None):
+    conn = get_db_connection(db_config_accidents)
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "INSERT INTO ticket_issue_logs (user_id, action, accident_id) VALUES (%s, %s, %s)",
+        (user_id, action, accident_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 # 查詢 accidents 資料表中 recognized 是 "2or3" 的 accident_id
 def get_recognized_accidents():
@@ -198,6 +287,8 @@ def download_ticket(accident_id):
 # 罰單預覽頁面
 @app.route('/ticket_preview/<accident_id>')
 def ticket_preview(accident_id):
+    if 'username' not in session:
+        return redirect('/login')
     # 連接資料庫
     conn = get_db_connection(db_config_accidents)
     cursor = conn.cursor(dictionary=True)
@@ -263,6 +354,7 @@ def send_ticket(accident_id):
     
     cursor.close()
     conn.close()
+                        
 
 
 # 列印罰單
@@ -271,6 +363,10 @@ def print_ticket(accident_id):
 
     #複製預覽PDF
     send_ticket(accident_id)
+    
+    if 'user_id' in session:
+        user_id=session["user_id"]
+        log_action(user_id, "列印罰單", accident_id)
     
     # 返回首頁
     return redirect(url_for('preview_data'))
@@ -288,27 +384,39 @@ def ticket_wrong(accident_id):
     finally:
         cursor.close()
         conn.close()
+    
+    if 'user_id' in session:
+        user_id=session["user_id"]
+        log_action(user_id, "錯誤送回", accident_id)
     return redirect(url_for('preview_data'))
     
 # 主路由
 @app.route('/preview_data')
 def preview_data():
+    search_query = request.args.get('query', '')  # 獲取查詢參數
+    
     # 取得 accidents 資料表中 recognized 為 "2or3" 的事故資料
     recognized_accidents = get_recognized_accidents()
     
-    # 將每個事故的 licence_plate 對應的詳細資料存入 results
+    # 每個事故的車牌存入results
     results = []
     for accident in recognized_accidents:
         vehicle_details = get_vehicle_details(accident['licence_plate'])
         
-        results.append({
-            "accident_id": accident['accident_id'],
-            "licence_plate": accident['licence_plate'],
-            "details": vehicle_details
-        })
+        #顯示輸入參數的對應內容
+        if (search_query.lower() in str(accident['accident_id']).lower() or
+            search_query.lower() in accident['licence_plate'].lower()):
+            results.append({
+                "accident_id": accident['accident_id'],
+                "licence_plate": accident['licence_plate'],
+                "details": vehicle_details
+            })
     
-    # 將資料傳遞到 HTML 模板
-    return render_template('preview.html', results=results)
+    # 傳送到HTML
+    if 'username' in session:
+        username = session['username']
+        return render_template('preview.html', username=username, results=results, query=search_query)
+    return redirect('/login')
 
 
 # 資料表名稱與欄位

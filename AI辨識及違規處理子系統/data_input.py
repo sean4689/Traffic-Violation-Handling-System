@@ -45,7 +45,7 @@ def get_user_initial_input():
         image_filename = input("輸入圖片檔案名稱（例如 '0001.jpg'）：")
 
         # 預設路徑設定
-        image_path = f"License_plate/{image_filename}"
+        image_path = os.path.join("License_plate", image_filename)
 
         if not os.path.exists(image_path):
             print(f"圖片檔案 {image_filename} 不存在，請檢查路徑！")
@@ -61,7 +61,7 @@ def get_user_initial_input():
             licence_plate = None
 
         # 一次性插入資料庫（包含車牌號碼及辨識結果）
-        insert_data_after_recognition(cam_id, speed_limit, current_speed, location, date_time, image_filename, licence_plate)
+        insert_data_after_recognition(cam_id, speed_limit, current_speed, location, date_time, image_path, licence_plate)
 
     except ValueError as e:
         print(f"輸入資料格式有誤：{e}")

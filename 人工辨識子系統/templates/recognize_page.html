@@ -35,14 +35,14 @@
         .input-group {
             margin-bottom: 20px;
         }
-        .input-group input {
+        .input-group input, .input-group select {
             width: 100%;
             padding: 12px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
         }
-        .input-group input:focus {
+        .input-group input:focus, .input-group select:focus {
             outline: none;
             border-color: #007bff;
         }
@@ -58,6 +58,12 @@
         }
         .btn:hover {
             background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #dc3545;
+        }
+        .btn-secondary:hover {
+            background-color: #c82333;
         }
         .back-link {
             text-align: center;
@@ -76,7 +82,6 @@
             font-size: 14px;
             text-align: center;
         }
-        /* 新增圖片樣式 */
         .accident-image {
             display: block;
             margin: 0 auto 20px auto;
@@ -90,7 +95,6 @@
     <div class="container">
         <h1>事故車牌辨識</h1>
         
-        <!-- 顯示錯誤訊息 -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="error-message">
@@ -101,13 +105,13 @@
             {% endif %}
         {% endwith %}
         
-        <!-- 顯示事故圖片 -->
         <img src="{{ url_for('static', filename='/License_plate/' + accident.image) }}" alt="事故圖片" class="accident-image">
 
         <div class="accident-info">
             <p><strong>事故 ID:</strong> {{ accident.accident_id }}</p>
             <p><strong>地點:</strong> {{ accident.location }}</p>
             <p><strong>時間:</strong> {{ accident.date_time }}</p>
+            <p><strong>AI 辨識錯誤碼:</strong> {{ accident.ai_error_code if accident.ai_error_code else 'N/A' }}</p>
         </div>
 
         <form method="POST">
@@ -115,6 +119,18 @@
                 <input type="text" name="licence_plate" id="licence_plate" placeholder="請輸入車牌號碼" required>
             </div>
             <button type="submit" class="btn">辨識並更新</button>
+        </form>
+
+        <form method="POST" action="/unrecognizable/{{ accident.accident_id }}" onsubmit="return confirm('確認標記為無法辨識？');">
+            <div class="input-group">
+                <select name="manual_comments" required>
+                    <option value="">請選擇無法辨識的原因</option>
+                    <option value="1">多車牌</option>
+                    <option value="2">非車牌</option>
+                    <option value="3">無車牌記錄</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">無法辨識</button>
         </form>
 
         <div class="back-link">

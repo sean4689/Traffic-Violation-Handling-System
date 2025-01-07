@@ -16,16 +16,11 @@ CREATE TABLE IF NOT EXISTS Accidents (
     image VARCHAR(200),
     latitude FLOAT,
     longitude FLOAT,
-    recognized VARCHAR(3)             -- 1(ai no), 2(ai yes), 3(human yes), 4(done), 5(unrecognizable)
-) AUTO_INCREMENT=10000001;
-
-DROP TABLE IF EXISTS Recognize;
-CREATE TABLE IF NOT EXISTS Recognize (
-    accident_id INT PRIMARY KEY,
+    recognized VARCHAR(3),             -- 1(ai no), 2(ai yes), 3(human yes), 4(done), 5(unrecognizable)
     confidence FLOAT,
-    result VARCHAR(7),
-    error_code VARCHAR(20)
-);
+    ai_error_code VARCHAR(20),
+    manual_comments VARCHAR(20)
+) AUTO_INCREMENT=10000001;
 
 CREATE TABLE preview_lifetime (
     accident_id INT PRIMARY KEY,
@@ -37,6 +32,23 @@ DO
   DELETE FROM preview_lifetime
   WHERE created_at < NOW() - INTERVAL 3 minute;
 SET GLOBAL event_scheduler = ON;
+
+DROP TABLE IF EXISTS traffic_ticket;
+CREATE TABLE IF NOT EXISTS traffic_ticket (
+    traffic_ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+    accident_id INT,
+    cam_id VARCHAR(15) NOT NULL,
+    speed_limit INT,
+    current_speed INT,
+    licence_plate VARCHAR(15) NOT NULL,
+    confidence FLOAT NOT NULL,
+    location VARCHAR(100),
+    date_time DATETIME,
+    image VARCHAR(200),
+    owner_id VARCHAR(10),
+    owner_name VARCHAR(100),
+    address VARCHAR(255)
+)AUTO_INCREMENT=10000001;
 
 CREATE TABLE IF NOT EXISTS Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -50,10 +62,27 @@ CREATE TABLE logs (
     action VARCHAR(255),             -- 例如 "辨識車牌" 或 "修改車牌"
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 操作時間
     accident_id INT,                -- 關聯的事故
-    licence_plate VARCHAR(15),
     FOREIGN KEY (user_id) REFERENCES users(user_id),  -- 關聯使用者資料表
     FOREIGN KEY (accident_id) REFERENCES accidents(accident_id) -- 關聯事故資料表
 );
+
+CREATE TABLE IF NOT EXISTS ticket_issuer (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE ticket_issue_logs (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,                    -- 用來關聯使用者
+    action VARCHAR(255),             -- 例如 "辨識車牌" 或 "修改車牌"
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 操作時間
+    accident_id INT,                -- 關聯的事故ticket_issue_logs
+    FOREIGN KEY (user_id) REFERENCES ticket_issuer(user_id),  -- 關聯使用者資料表
+    FOREIGN KEY (accident_id) REFERENCES accidents(accident_id) -- 關聯事故資料表
+);
+
+ALTER TABLE logs ADD COLUMN details TEXT;
 
 
 

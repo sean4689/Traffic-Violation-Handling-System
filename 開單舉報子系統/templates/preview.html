@@ -150,16 +150,57 @@
             background-color: #ccc;
             cursor: not-allowed;
         }
+		.search-container {
+			display: flex;
+			justify-content: center;
+			margin-bottom: 20px;
+		}
+
+		.search-container input {
+			width: 300px;
+			padding: 10px;
+			font-size: 16px;
+			border: 1px solid #ccc;
+			border-radius: 5px 0 0 5px;
+			outline: none;
+		}
+
+		.search-container button {
+			padding: 10px 20px;
+			font-size: 16px;
+			color: #fff;
+			background-color: #007bff;
+			border: none;
+			border-radius: 0 5px 5px 0;
+			cursor: pointer;
+			transition: background-color 0.3s;
+		}
+
+		.search-container button:hover {
+			background-color: #0056b3;
+		}
     </style>
 </head>
 <body>
-    <h2>罰單預覽目錄</h2>
-
+    <div class="search-container">
+        <form action="/preview_data" method="get">
+            <input type="text" id="searchInput" name="query" placeholder="輸入違規編號、車主姓名、車牌號碼或身分證號碼進行查詢" value="{{ query }}">
+            <button type="submit">查詢</button>
+        </form>
+    </div>
     <!-- 切換按鈕 -->
     <div class="view-toggle">
         <button id="toggleView">切換為卡片展示</button>
     </div>
 
+        <div class="user-info">
+            {% if username %}
+                <span>操作員：{{ username }}</span>
+                <a href="/logout" method="POST">登出</a>
+            {% else %}
+                <a href="/login">登入</a>
+            {% endif %}
+        </div>
     <!-- 列表模式 -->
     <div id="listView">
         {% if results %}
@@ -231,7 +272,7 @@
 
                 card.innerHTML = `
                     <h3>違規編號: ${item.accident_id}</h3>
-					<embed src="{{ url_for('download_ticket', accident_id='') }}${item.accident_id}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="350vw" height="400vh">
+					<embed src="{{ url_for('download_ticket', accident_id='') }}${item.accident_id}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="352vw" height="400vh">
                     <p>車牌號碼: ${item.licence_plate}</p>
                     ${item.details.map(detail => `
                         <p>身分證號: ${detail.owner_id}</p>
