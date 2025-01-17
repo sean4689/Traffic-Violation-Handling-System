@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事故車牌辨識</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .tab-section {
+            width: 32%;
+            background-color: #f9f9f9;
+            margin: 0 5px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        .accident-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            border: 1px solid #ddd;
+        }
+        .accident-item:hover {
+            transform: translateY(-5px);
+            background-color: #e9e9e9;
+        }
+        .accident-item strong {
+            color: #007bff;
+        }
+        .accident-item p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .accident-item a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .accident-item a:hover {
+            background-color: #0056b3;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a, .log-link a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .log-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .filter {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .filter label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .filter input, .filter select, .filter button {
+            padding: 8px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .filter button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .filter button:hover {
+            background-color: #0056b3;
+        }
+
+        .filter input[type="date"] {
+            padding: 8px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        
+
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <div class="user-info">
+            {% if username %}
+                <span>歡迎，{{ username }}！</span>
+                <a href="/logout" method="POST">登出</a>
+            {% else %}
+                <a href="/login">登入</a>
+            {% endif %}
+        </div>
+        <h1>事故車牌辨識</h1>
+        <div class="filter">
+            <form id="filter-form">
+                <label for="filter-keyword">搜尋關鍵字:</label>
+                <input type="text" id="filter-keyword" name="keyword" placeholder="輸入地點或事故 ID">
+                
+                <label for="filter-status">狀態:</label>
+                <select id="filter-status" name="status">
+                    <option value="">全部</option>
+                    <option value="未辨識">未辨識</option>
+                    <option value="已辨識">已辨識</option>
+                    <option value="無法辨識">無法辨識</option>
+                </select>
+                
+                <label for="start-date">起始日期:</label>
+                <input type="date" id="start-date" name="start_date">
+                
+                <label for="end-date">結束日期:</label>
+                <input type="date" id="end-date" name="end_date">
+                
+                <button type="button" onclick="applyFilter()">篩選</button>
+            </form>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab-section" id="unrecognized-events">
+                <h2>未辨識</h2>
+                <div id="unrecognized-list"></div>
+            </div>
+            <div class="tab-section" id="recognized-events">
+                <h2>已辨識</h2>
+                <div id="recognized-list"></div>
+            </div>
+            <div class="tab-section" id="unrecognizable-events">
+                <h2>無法辨識</h2>
+                <div id="unrecognizable-list"></div>
+            </div>
+        </div>
+        
+        <div class="back-link">
+            <a href="/">返回首頁</a>
+        </div>
+        <div class="log-link">
+            <a href="/logs">查看操作日誌</a>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        loadAccidents('1', 'unrecognized-list');
+        loadAccidents('3', 'recognized-list');
+        loadAccidents('5', 'unrecognizable-list');
+    });
+
+    function loadAccidents(status, containerId) {
+        fetch(`/accidents/${status}`)
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+                return response.json();
+            })
+            .then(data => {
+                const container = document.getElementById(containerId);
+                let accidentsHtml = '';
+                if (data.accidents.length > 0) {
+                    data.accidents.forEach(accident => {
+                        accidentsHtml += `
+                            <div class="accident-item" onclick="window.location.href='/recognize/${accident.accident_id}'">
+                                <strong>事故 ID:</strong> ${accident.accident_id}<br>
+                                <strong>地點:</strong> ${accident.location}<br>
+                                <strong>時間:</strong> ${accident.date_time}<br>
+                            </div>
+                        `;
+                    });
+                } else {
+                    accidentsHtml = '<p>目前沒有相關事故。</p>';
+                }
+                container.innerHTML = accidentsHtml;
+            })
+            .catch(error => console.error('Error fetching accidents:', error));
+    }
+    function applyFilter() {
+        const keyword = document.getElementById('filter-keyword').value.trim();
+        const status = document.getElementById('filter-status').value;
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        
+        fetch(`/filter_accidents?keyword=${encodeURIComponent(keyword)}&status=${encodeURIComponent(status)}&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`)
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+                return response.json();
+            })
+            .then(data => {
+                ['unrecognized-list', 'recognized-list', 'unidentifiable-list'].forEach(id => {
+                    document.getElementById(id).innerHTML = ''; // 清空內容
+                });
+                
+                data.accidents.forEach(accident => {
+                    const containerId = accident.recognized === 1 
+                        ? 'unrecognized-list' 
+                        : (accident.recognized === 3 ? 'recognized-list' : 'unidentifiable-list');
+                    
+                    const container = document.getElementById(containerId);
+                    container.innerHTML += `
+                        <div class="accident-item" onclick="window.location.href='/recognize/${accident.accident_id}'">
+                            <strong>事故 ID:</strong> ${accident.accident_id}<br>
+                            <strong>地點:</strong> ${accident.location}<br>
+                            <strong>時間:</strong> ${accident.date_time}<br>
+                        </div>
+                    `;
+                });
+            })
+            .catch(error => console.error('Error applying filter:', error));
+
+            // 發送篩選請求
+        fetch(`/filter_accidents?keyword=${keyword}&status=${status}&start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                // 渲染返回的事故數據
+                renderAccidents(data.accidents);
+            })
+            .catch(error => {
+                console.error("篩選過程中出現錯誤：", error);
+            });
+    }
+    function renderAccidents(accidents) {
+    // 清空所有區塊
+    document.getElementById("recognized-list").innerHTML = "";
+    document.getElementById("unrecognized-list").innerHTML = "";
+    document.getElementById("unrecognizable-list").innerHTML = "";
+
+    // 遍歷事故數據
+    accidents.forEach(accident => {
+    // 創建事故項目容器
+        const item = document.createElement("div");
+        item.className = "accident-item";
+        item.onclick = () => {
+            window.location.href = `/recognize/${accident.accident_id}`;
+        };
+
+        // 添加事故內容
+        item.innerHTML = `
+            <strong>事故 ID:</strong> ${accident.accident_id}<br>
+            <strong>地點:</strong> ${accident.location}<br>
+            <strong>時間:</strong> ${accident.date_time}<br>
+        `;
+
+        // 根據 recognized 值將項目插入到對應的區塊
+        if (accident.recognized == 2 || accident.recognized == 3) {
+            document.getElementById("recognized-list").appendChild(item);
+        } else if (accident.recognized == 1) {
+            document.getElementById("unrecognized-list").appendChild(item);
+        } else if (accident.recognized == 5) {
+            document.getElementById("unrecognizable-list").appendChild(item);
+        }
+    });
+}
+
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作日誌</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .log-item {
+            border-bottom: 1px solid #ddd;
+            padding: 15px 0;
+        }
+        .log-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>操作日誌</h1>
+        <div class="log-list">
+            {% if logs %}
+                {% for log in logs %}
+                    <div class="log-item">
+                        <p><strong>用戶:</strong> {{ log.username }}</p>
+                        <p><strong>操作類型:</strong> {{ log.action }}</p>
+                        <p><strong>時間:</strong> {{ log.timestamp }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>目前沒有操作日誌。</p>
+            {% endif %}
+        </div>
+        <div class="back-link">
+            <a href="/preview_data">返回首頁</a>
+        </div>
+    </div>
+</body>
+</html>

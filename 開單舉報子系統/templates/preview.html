@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>罰單預覽目錄</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 24px;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+		
+		.button_container {
+            display: flex;
+            justify-content: right;
+		}
+        .view-toggle, .print_all_container, .user-info, .search-container {
+            display: flex;
+            justify-content: right;
+            margin: 0 0 10px 5px;
+        }
+        .view-toggle button, .print_all_container button {
+            margin-left: 5px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .view-toggle button:hover, .print_all_container button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Table Style */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        thead {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+		
+		
+        a {
+            display: inline-block;
+            padding: 10px 20px;
+			font-size: 16px;
+			text-decoration: none;
+			color: white;
+			background-color: #007BFF;
+			border: none;
+			border-radius: 5px;
+			text-align: center;
+			transition: background-color 0.3s ease;
+			cursor: pointer;
+        }
+
+        a:hover {
+			background-color: #0056b3;
+		}
+
+        /* Card Style */
+        .card-container {
+            display: none;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .card {
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            width: calc(25% - 20px);
+            box-sizing: border-box;
+        }
+
+        .card h3 {
+            font-size: 18px;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .card a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .card a:hover {
+            background-color: #0056b3;
+        }
+
+        /* Pagination Style */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button, pagination input {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 5px 15px;
+            margin: 0 4px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .pagination button:hover {
+            background-color: #0056b3;
+        }
+
+        .pagination button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+		.search-container input {
+			width: 300px;
+			padding: 10px;
+			font-size: 16px;
+			border: 1px solid #ccc;
+			border-radius: 5px;
+			outline: none;
+		}
+
+		.search-container button {
+			border-radius: 5px 0 0 5px;
+			padding: 10px 20px;
+			font-size: 16px;
+			color: #fff;
+			background-color: #007bff;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+			transition: background-color 0.3s;
+		}
+
+		.search-container button:hover {
+			background-color: #0056b3;
+		}
+    </style>
+</head>
+<body>
+	<div>
+		<!-- 切換按鈕 -->
+		<div class="button_container">
+			<div class="user-info">
+				{% if username %}
+					<span>操作員：{{ username }}</span>
+					<a href="/logout" method="POST">登出</a>
+				{% else %}
+					<a href="/login">登入</a>
+				{% endif %}
+			</div>
+			<div class="user-info">
+				<a href="/logs">操作紀錄</a>
+			</div>
+			<div class="search-container"> 
+				<form id="searchForm" action="/preview_data" method="get">
+					<input type="text" id="searchInput" name="query" placeholder="輸入違規編號或車牌號碼進行查詢" value="{{ query }}">
+					<input type="hidden" id="recognizedInput" name="recognized" value="">
+					<button type="submit">查詢</button>
+				</form>
+			</div>
+			<div id="print_all_container" class="print_all_container"></div>
+			<div class="view-toggle">
+				<button id="recognizedToggle" style="font-size: 16px;">未印</button>
+				<button id="toggleView">|||</button>
+			</div>
+		</div>
+	</div>
+    <!-- 列表模式 -->
+    <div id="listView">
+        {% if results %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>違規編號</th>
+                        <th>車牌號碼</th>
+                        <th>車主身分證號</th>
+                        <th>車主姓名</th>
+                        <th>車主地址</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in results %}
+                    <tr>
+                        <td>{{ item.accident_id }}</td>
+                        <td>{{ item.licence_plate }}</td>
+                        {% for detail in item.details %}
+                            <td>{{ detail.owner_id }}</td>
+                            <td>{{ detail.owner_name }}</td>
+                            <td>{{ detail.address }}</td>
+                        {% endfor %}
+                        <td>
+                            <a href="{{ url_for('ticket_preview', accident_id=item.accident_id) }}">預覽該罰單</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>目前沒有可預覽資料。</p>
+        {% endif %}
+    </div>
+
+    <!-- 卡片模式 -->
+    <div id="cardView" class="card-container"></div>
+    <div class="pagination" id="pagination"></div>
+
+    <script>
+        const viewToggleButton = document.getElementById('toggleView');
+		const recognizedToggle = document.getElementById('recognizedToggle');
+        const listView = document.getElementById('listView');
+		const print_all_container = document.getElementById('print_all_container');
+        const cardView = document.getElementById('cardView');
+        const pagination = document.getElementById('pagination');
+        const cardsPerPage = 4;
+
+        let currentPage = 1;
+
+        const data = {{ results|tojson }}; // 從伺服器獲取資料
+		
+		function setupPrintAllButton() { 
+			const allPrintButton = document.getElementById('print_all');
+			if (!allPrintButton) return;
+			// 添加點擊事件監聽
+			document.getElementById('print_all').addEventListener('click', () => {
+				// 定義起始和結束索引
+				const startIndex = (currentPage - 1) * cardsPerPage;
+				const endIndex = Math.min(startIndex + cardsPerPage, data.length);
+
+				// 收集所有請求的 Promise
+				const requests = [];
+
+				for (let i = startIndex; i < endIndex; i++) {
+					const item = data[i];
+
+					// 建立一個 Promise 並添加到陣列
+					const request = fetch(`/print_ticket/${item.accident_id}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					})
+						.then(response => {
+							if (!response.ok) {
+								throw new Error(`Failed to print ticket for accident ID: ${item.accident_id}`);
+							}
+							return response.json();
+						})
+						.then(data => {
+							console.log(`Successfully printed ticket for accident ID: ${item.accident_id}`, data);
+						})
+						.catch(error => {
+							console.error(error);
+						});
+
+					requests.push(request);
+				}
+
+				// 等待所有請求完成
+				Promise.all(requests)
+					.then(() => {
+						location.reload();
+					})
+					.catch(error => {
+					});
+			});
+		}
+
+		document.getElementById('searchForm').addEventListener('submit', function(event) {
+			// 阻止表單的默認提交行為
+			event.preventDefault();
+			
+			// 如果 recognized 參數存在，則根據它設置 recognizedInput 的值
+			if (localStorage.getItem('recognizedState')) {
+				document.getElementById('recognizedInput').value = localStorage.getItem('recognizedState');
+			} else {
+				// 默認值為 'not_done'
+				document.getElementById('recognizedInput').value = 'not_done';
+			}
+
+			// 提交表單
+			this.submit();
+		});
+
+
+
+        // Render Card View
+        function renderCards() {
+            cardView.innerHTML = '';
+            const startIndex = (currentPage - 1) * cardsPerPage;
+            const endIndex = Math.min(startIndex + cardsPerPage, data.length);
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const item = data[i];
+                const card = document.createElement('div');
+                card.className = 'card';
+				fetch(`/generate_ticket_pdf/${item.accident_id}`)
+					.then(response => response.text())  // 取得回應的文字內容
+					.then(result => {
+						if (result === "0") {  // 如果回傳值是 "0"（檔案不存在）
+							location.reload();   // 重新載入頁面
+						}
+					})
+
+                card.innerHTML = `
+                    <h3>違規編號: ${item.accident_id}</h3>
+					<embed src="{{ url_for('download_ticket', accident_id='') }}${item.accident_id}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="351vw" height="400vh">
+                    <p>車牌號碼: ${item.licence_plate}</p>
+                    ${item.details.map(detail => `
+                        <p>身分證號: ${detail.owner_id}</p>
+                        <p>車主姓名: ${detail.owner_name}</p>
+                        <p>車主地址: ${detail.address}</p>
+                    `).join('')}
+                    <a href="/ticket_preview/${item.accident_id}">預覽該罰單</a>
+                `;
+                cardView.appendChild(card);
+            }
+        }
+
+        function renderPagination() {
+			pagination.innerHTML = '';
+			const totalPages = Math.ceil(data.length / cardsPerPage);
+
+			// 從localStorage獲取當前頁面
+			const savedPage = localStorage.getItem('currentPage');
+			const pageToShow = savedPage ? parseInt(savedPage) : 1;
+
+			const maxButtons = 5; // 顯示的按鈕數量限制
+			const startPage = Math.max(1, Math.min(totalPages - maxButtons + 1, pageToShow - Math.floor(maxButtons / 2)));
+			const endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+			// 渲染分頁按鈕
+			for (let i = startPage; i <= endPage; i++) {
+				const button = document.createElement('button');
+				button.textContent = i;
+				button.disabled = i === pageToShow;
+				button.addEventListener('click', () => {
+					currentPage = i;
+					localStorage.setItem('currentPage', i); // 保存當前頁面到localStorage
+					renderCards();
+					renderPagination();
+				});
+				pagination.appendChild(button);
+			}
+
+			// 如果總頁數超過5，新增輸入框和搜尋按鈕
+			if (totalPages > maxButtons) {
+				const inputContainer = document.createElement('div');
+				inputContainer.style.display = 'flex';
+				inputContainer.style.alignItems = 'center';
+
+				const pageInput = document.createElement('input');
+				pageInput.type = 'number';
+				pageInput.placeholder = '輸入頁碼';
+				pageInput.style.width = '100%';
+				pageInput.style.height = '85%';
+				pageInput.style.marginRight = '5px';
+				pageInput.style.borderRadius = '5px';
+				pageInput.min = 1;
+				pageInput.max = totalPages;
+
+				const goButton = document.createElement('button');
+				goButton.textContent = '搜尋';
+				goButton.addEventListener('click', () => {
+					const pageNumber = parseInt(pageInput.value);
+					if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
+						currentPage = pageNumber;
+					} else {
+						currentPage = totalPages;
+					}
+						localStorage.setItem('currentPage', pageNumber); // 保存當前頁面到localStorage
+						renderCards();
+						renderPagination();
+				});
+
+				inputContainer.appendChild(pageInput);
+				inputContainer.appendChild(goButton);
+				pagination.appendChild(inputContainer);
+			}
+		}
+
+
+		// Toggle View
+		viewToggleButton.addEventListener('click', () => {
+			if (listView.style.display === 'none') {
+				listView.style.display = 'block';
+				cardView.style.display = 'none';
+				pagination.style.display = 'none';
+				viewToggleButton.textContent = '|||';
+				print_all_container.innerHTML = '';
+				
+				// 保存當前狀態到localStorage
+				localStorage.setItem('viewState', 'list');
+			} else {
+				listView.style.display = 'none';
+				cardView.style.display = 'flex';
+				pagination.style.display = 'flex';
+				viewToggleButton.textContent = '☰';
+				print_all_container.innerHTML = '<button id="print_all">批量列印</button>';
+				setupPrintAllButton();
+				renderCards();
+				
+				// 保存當前狀態到localStorage
+				localStorage.setItem('viewState', 'card');
+			}
+		});
+    
+		recognizedToggle.addEventListener('click', () => {
+			if (localStorage.getItem('recognizedState') === 'done') {
+				localStorage.setItem('recognizedState', 'not_done');
+				window.location.href = `/preview_data?recognized=not_done`;
+			} else {
+				localStorage.setItem('recognizedState', 'done');
+				window.location.href = `/preview_data?recognized=done`;
+			}
+		});
+		
+		window.addEventListener('load', () => {
+			// 讀取視圖狀態 (列表或卡片展示)
+			const savedState = localStorage.getItem('viewState');
+			if (savedState === 'list') {
+				listView.style.display = 'block';
+				cardView.style.display = 'none';
+				pagination.style.display = 'none';
+				viewToggleButton.textContent = '|||';
+				print_all_container.innerHTML = '';
+			} else if (savedState === 'card') {
+				listView.style.display = 'none';
+				cardView.style.display = 'flex';
+				pagination.style.display = 'flex';
+				viewToggleButton.textContent = '☰';
+				print_all_container.innerHTML = '<button id="print_all">批量列印</button>';
+				setupPrintAllButton();
+				renderCards();
+				renderPagination();
+			}
+
+			// 讀取當前頁面
+			const savedPage = localStorage.getItem('currentPage');
+			currentPage = savedPage ? parseInt(savedPage) : 1;
+			renderCards();
+			renderPagination();
+			if (localStorage.getItem('recognizedState') === 'done') {
+				recognizedToggle.textContent = '已印';
+			}else{
+				recognizedToggle.textContent = '未印';
+			}
+		});
+
+    </script>
+</body>
+</html>
