@@ -1,5 +1,6 @@
 import requests
-access_token="pk.eyJ1Ijoic2VhbjEwMTEiLCJhIjoiY200bGVlNGNxMDB1ZjJqcThxZ3FpZW96aiJ9.AYZsVeMfUy0hFDw1yHhKYA"
+
+access_token=""
 
 def get_coordinates(address, access_token):
     url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{address}.json"
